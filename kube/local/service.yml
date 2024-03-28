@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: metricsrlm-service
+  namespace: metricsrlm
+  labels:
+    app: <PROMETHEUS_SERVICE_NAME_HERE>
+  annotations:
+    prometheus.io/path: /metrics
+    prometheus.io/port: "80"
+    prometheus.io/scrape: "true"
+spec:
+  selector:
+    app: <PROMETHEUS_SERVICE_NAME_HERE>
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+      name: http

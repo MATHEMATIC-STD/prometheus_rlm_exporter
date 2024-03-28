@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metricsrlm-deployment
+  namespace: metricsrlm
+  labels:
+    app: metricsrlm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: metricsrlm
+  template:
+    metadata:
+      labels:
+        app: metricsrlm
+    spec:
+      containers:
+       - name: metricsrlm
+        image: metricsrlm
+        imagePullPolicy: Never # Only in dev, Change this to Always if you are using a public image
+        envFrom:
+          - configMapRef:
+              name: metricsrlm-configmap
+        ports:
+          - containerPort: 80

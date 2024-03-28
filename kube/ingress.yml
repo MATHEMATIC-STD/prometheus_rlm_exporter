@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: metricsrlm-ingress
+  namespace: metricsrlm
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /metrics
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /apps/metricsrlm
+            pathType: Prefix
+            backend:
+              service:
+                name: metricsrlm-service
+                port:
+                  number: 80
