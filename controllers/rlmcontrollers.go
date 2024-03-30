@@ -196,38 +196,38 @@ func (server *Server) GetLicenses(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err)
 	}
 
+	fmt.Println(string(stdout))
+
 	str := ""
-	if len(metrics.Usage) == 0 && len(metrics.Total) > 0 {
-		for key, value := range metrics.Total {
-			str += fmt.Sprintf("# HELP nuke_rlm_%s_license_usage nuke_rlm_%s_license_uasge\n", key, key)
-			str += fmt.Sprintf("# TYPE nuke_rlm_%s_license_usage gauge\n", key)
+	for key, value := range metrics.Total {
+		str += fmt.Sprintf("# HELP nuke_rlm_%s_license_usage nuke_rlm_%s_license_usage\n", key, key)
+		str += fmt.Sprintf("# TYPE nuke_rlm_%s_license_usage gauge\n", key)
+		
+		if usage, ok := metrics.Usage[key]; ok {
 			str += fmt.Sprintf(
 				"rlm_license_info_%s{id=\"%s_usage\", product=\"%s\", versions=\"%s\", users=\"%s\", workers=\"%s\", count=\"%d\"} %d\n",
 				key,
 				key,
-				value.Product,
-				"none",
-				"none",
-				"none",
-				0,
-				0,
+				usage.Product,
+				sliceToString(usage.Versions),
+				sliceToString(usage.Users),
+				sliceToString(usage.Workers),
+				usage.Count,
+				usage.Count,
 			)
+			continue;
 		}
-	}
 
-	for key, value := range metrics.Usage {
-		str += fmt.Sprintf("# HELP nuke_rlm_%s_license_usage nuke_rlm_%s_license_uasge\n", key, key)
-		str += fmt.Sprintf("# TYPE nuke_rlm_%s_license_usage gauge\n", key)
 		str += fmt.Sprintf(
 			"rlm_license_info_%s{id=\"%s_usage\", product=\"%s\", versions=\"%s\", users=\"%s\", workers=\"%s\", count=\"%d\"} %d\n",
 			key,
 			key,
 			value.Product,
-			sliceToString(value.Versions),
-			sliceToString(value.Users),
-			sliceToString(value.Workers),
-			value.Count,
-			value.Count,
+			"none",
+			"none",
+			"none",
+			0,
+			0,
 		)
 	}
 
