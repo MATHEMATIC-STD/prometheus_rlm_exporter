@@ -211,7 +211,6 @@ func (server *Server) GetLicenses(w http.ResponseWriter, r *http.Request) {
 			users = sliceToString(usage.Users)
 			workers = sliceToString(usage.Workers)
 			count = usage.Count
-			continue
 		}
 
 		str += fmt.Sprintf(
