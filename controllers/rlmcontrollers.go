@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"sort"
 	"strconv"
 
 	"github.com/OlivierArgentieri/NukeRlmPrometheusExporter/responses"
@@ -24,11 +25,6 @@ type Total struct {
 	Product string
 	Version string
 	Count   int
-}
-
-type Metrics struct {
-	Total map[string]Total
-	Usage map[string]Usage
 }
 
 // TODO: Move to a helper package
@@ -69,6 +65,7 @@ func sliceToString(slice []string) string {
 func GetUsages(value string) (map[string]Usage, error) {
 	reg_usage_compiled := regexp.MustCompile(statics.REG_USAGE)
 	usage_matchs := reg_usage_compiled.FindAllString(value, -1)
+
 	usages := make(map[string]Usage)
 	if len(usage_matchs) == 0 {
 		return usages, fmt.Errorf("NO MATCH FOUND FOR USAGES")
@@ -119,6 +116,7 @@ func GetUsages(value string) (map[string]Usage, error) {
 func GetTotals(value string) (map[string]Total, error) {
 	reg_total_compiled := regexp.MustCompile(statics.REG_TOTAL)
 	total_matchs := reg_total_compiled.FindAllString(value, -1)
+
 	totals := make(map[string]Total)
 	if len(total_matchs) == 0 {
 		return totals, fmt.Errorf("NO MATCH FOUND FOR TOTAL")
@@ -154,21 +152,74 @@ func GetTotals(value string) (map[string]Total, error) {
 	return totals, nil
 }
 
-func GetMetrics(value string) (Metrics, error) {
+func GetMetrics(value string) (string, error) {
 	usage, err := GetUsages(value)
 	if err != nil {
-		return Metrics{}, err
+		return "", err
 	}
 
 	total, err := GetTotals(value)
 	if err != nil {
-		return Metrics{}, err
+		return "", err
 	}
 
-	return Metrics{
-		Total: total,
-		Usage: usage,
-	}, nil
+	// Sort dict key
+	// TODO: Move to a helper function/package
+	total_keys := make([]string, 0, len(total))
+	for k := range total {
+		total_keys = append(total_keys, k)
+	}
+	sort.Strings(total_keys)
+
+	str := ""
+	for key := range total_keys {
+		key := total_keys[key]
+		value := total[key]
+		str += fmt.Sprintf("# HELP nuke_rlm_%s_license_usage nuke_rlm_%s_license_usage\n", key, key)
+		str += fmt.Sprintf("# TYPE nuke_rlm_%s_license_usage gauge\n", key)
+
+		versions := "none"
+		users := "none"
+		workers := "none"
+		count := 0
+
+		if usage, ok := usage[key]; ok {
+			versions = sliceToString(usage.Versions)
+			users = sliceToString(usage.Users)
+			workers = sliceToString(usage.Workers)
+			count = usage.Count
+		}
+
+		str += fmt.Sprintf(
+			"rlm_license_info_%s{id=\"%s_usage\", product=\"%s\", versions=\"%s\", users=\"%s\", workers=\"%s\", count=\"%d\"} %d\n",
+			key,
+			key,
+			value.Product,
+			versions,
+			users,
+			workers,
+			count,
+			count,
+		)
+	}
+
+	for key := range total_keys {
+		key := total_keys[key]
+		value := total[key]
+		str += fmt.Sprintf("# HELP nuke_rlm_%s_total_licenses nuke_rlm_%s_total_licenses\n", key, key)
+		str += fmt.Sprintf("# TYPE nuke_rlm_%s_total_licenses gauge\n", key)
+		str += fmt.Sprintf(
+			"rlm_license_info_%s{id=\"%s_total\", product=\"%s\", version=\"%s\", count=\"%d\"} %d\n",
+			key,
+			key,
+			value.Product,
+			value.Version,
+			value.Count,
+			value.Count,
+		)
+	}
+
+	return str, nil
 }
 
 func (server *Server) GetLicenses(w http.ResponseWriter, r *http.Request) {
@@ -196,50 +247,5 @@ func (server *Server) GetLicenses(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err)
 	}
 
-	str := ""
-	for key, value := range metrics.Total {
-		str += fmt.Sprintf("# HELP nuke_rlm_%s_license_usage nuke_rlm_%s_license_usage\n", key, key)
-		str += fmt.Sprintf("# TYPE nuke_rlm_%s_license_usage gauge\n", key)
-
-		versions := "none"
-		users := "none"
-		workers := "none"
-		count := 0
-
-		if usage, ok := metrics.Usage[key]; ok {
-			versions = sliceToString(usage.Versions)
-			users = sliceToString(usage.Users)
-			workers = sliceToString(usage.Workers)
-			count = usage.Count
-		}
-
-		str += fmt.Sprintf(
-			"rlm_license_info_%s{id=\"%s_usage\", product=\"%s\", versions=\"%s\", users=\"%s\", workers=\"%s\", count=\"%d\"} %d\n",
-			key,
-			key,
-			value.Product,
-			versions,
-			users,
-			workers,
-			count,
-			count,
-		)
-	}
-
-	for key, value := range metrics.Total {
-		str += fmt.Sprintf("# HELP nuke_rlm_%s_total_licenses nuke_rlm_%s_total_licenses\n", key, key)
-		str += fmt.Sprintf("# TYPE nuke_rlm_%s_total_licenses gauge\n", key)
-		str += fmt.Sprintf(
-			"rlm_license_info_%s{id=\"%s_total\", product=\"%s\", version=\"%s\", count=\"%d\"} %d\n",
-			key,
-			key,
-			value.Product,
-			value.Version,
-			value.Count,
-			value.Count,
-		)
-	}
-
-	// write the data but interpret new lines
-	responses.TEXT(w, http.StatusOK, str)
+	responses.TEXT(w, http.StatusOK, metrics)
 }
