@@ -66,7 +66,7 @@ func sliceToString(slice []string) string {
 	return str
 }
 
-func getUsages(value string) (map[string]Usage, error) {
+func GetUsages(value string) (map[string]Usage, error) {
 	reg_usage_compiled := regexp.MustCompile(statics.REG_USAGE)
 	usage_matchs := reg_usage_compiled.FindAllString(value, -1)
 	usages := make(map[string]Usage)
@@ -116,7 +116,7 @@ func getUsages(value string) (map[string]Usage, error) {
 	return usages, nil
 }
 
-func getTotals(value string) (map[string]Total, error) {
+func GetTotals(value string) (map[string]Total, error) {
 	reg_total_compiled := regexp.MustCompile(statics.REG_TOTAL)
 	total_matchs := reg_total_compiled.FindAllString(value, -1)
 	totals := make(map[string]Total)
@@ -154,13 +154,13 @@ func getTotals(value string) (map[string]Total, error) {
 	return totals, nil
 }
 
-func getMetrics(value string) (Metrics, error) {
-	usage, err := getUsages(value)
+func GetMetrics(value string) (Metrics, error) {
+	usage, err := GetUsages(value)
 	if err != nil {
 		return Metrics{}, err
 	}
 
-	total, err := getTotals(value)
+	total, err := GetTotals(value)
 	if err != nil {
 		return Metrics{}, err
 	}
@@ -191,31 +191,27 @@ func (server *Server) GetLicenses(w http.ResponseWriter, r *http.Request) {
 
 	get_processes := exec.Command("bash", "-c", cmd)
 	stdout, _ := get_processes.CombinedOutput()
-	metrics, err := getMetrics(string(stdout))
+	metrics, err := GetMetrics(string(stdout))
 	if err != nil {
 		fmt.Println(err)
 	}
-
-	fmt.Println(string(stdout))
 
 	str := ""
 	for key, value := range metrics.Total {
 		str += fmt.Sprintf("# HELP nuke_rlm_%s_license_usage nuke_rlm_%s_license_usage\n", key, key)
 		str += fmt.Sprintf("# TYPE nuke_rlm_%s_license_usage gauge\n", key)
-		
+
+		versions := "none"
+		users := "none"
+		workers := "none"
+		count := 0
+
 		if usage, ok := metrics.Usage[key]; ok {
-			str += fmt.Sprintf(
-				"rlm_license_info_%s{id=\"%s_usage\", product=\"%s\", versions=\"%s\", users=\"%s\", workers=\"%s\", count=\"%d\"} %d\n",
-				key,
-				key,
-				usage.Product,
-				sliceToString(usage.Versions),
-				sliceToString(usage.Users),
-				sliceToString(usage.Workers),
-				usage.Count,
-				usage.Count,
-			)
-			continue;
+			versions = sliceToString(usage.Versions)
+			users = sliceToString(usage.Users)
+			workers = sliceToString(usage.Workers)
+			count = usage.Count
+			continue
 		}
 
 		str += fmt.Sprintf(
@@ -223,11 +219,11 @@ func (server *Server) GetLicenses(w http.ResponseWriter, r *http.Request) {
 			key,
 			key,
 			value.Product,
-			"none",
-			"none",
-			"none",
-			0,
-			0,
+			versions,
+			users,
+			workers,
+			count,
+			count,
 		)
 	}
 
