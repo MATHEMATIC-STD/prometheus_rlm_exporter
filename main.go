@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/OlivierArgentieri/NukeRlmPrometheusExporter/controllers"
-	"github.com/OlivierArgentieri/NukeRlmPrometheusExporter/statics"
+	"github.com/OlivierArgentieri/PrometheusExporter/controllers"
+	"github.com/OlivierArgentieri/PrometheusExporter/statics"
 )
 
 type program struct {

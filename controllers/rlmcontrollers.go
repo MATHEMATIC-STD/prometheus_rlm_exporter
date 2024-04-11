@@ -9,8 +9,8 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/OlivierArgentieri/NukeRlmPrometheusExporter/responses"
-	"github.com/OlivierArgentieri/NukeRlmPrometheusExporter/statics"
+	"github.com/OlivierArgentieri/PrometheusExporter/responses"
+	"github.com/OlivierArgentieri/PrometheusExporter/statics"
 )
 
 type Usage struct {
@@ -175,8 +175,8 @@ func GetMetrics(value string) (string, error) {
 	for key := range total_keys {
 		key := total_keys[key]
 		value := total[key]
-		str += fmt.Sprintf("# HELP nuke_rlm_%s_license_usage nuke_rlm_%s_license_usage\n", key, key)
-		str += fmt.Sprintf("# TYPE nuke_rlm_%s_license_usage gauge\n", key)
+		str += fmt.Sprintf("# HELP %s_license_usage %s_license_usage\n", key, key)
+		str += fmt.Sprintf("# TYPE %s_license_usage gauge\n", key)
 
 		versions := "none"
 		users := "none"
@@ -206,8 +206,8 @@ func GetMetrics(value string) (string, error) {
 	for key := range total_keys {
 		key := total_keys[key]
 		value := total[key]
-		str += fmt.Sprintf("# HELP nuke_rlm_%s_total_licenses nuke_rlm_%s_total_licenses\n", key, key)
-		str += fmt.Sprintf("# TYPE nuke_rlm_%s_total_licenses gauge\n", key)
+		str += fmt.Sprintf("# HELP %s_total_licenses %s_total_licenses\n", key, key)
+		str += fmt.Sprintf("# TYPE %s_total_licenses gauge\n", key)
 		str += fmt.Sprintf(
 			"rlm_license_info_%s{id=\"%s_total\", product=\"%s\", version=\"%s\", count=\"%d\"} %d\n",
 			key,

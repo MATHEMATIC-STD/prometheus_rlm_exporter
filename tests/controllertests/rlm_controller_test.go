@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/OlivierArgentieri/NukeRlmPrometheusExporter/controllers"
-	"github.com/OlivierArgentieri/NukeRlmPrometheusExporter/tests/mocks"
+	"github.com/OlivierArgentieri/PrometheusExporter/controllers"
+	"github.com/OlivierArgentieri/PrometheusExporter/tests/mocks"
 	"gopkg.in/go-playground/assert.v1"
 )
 

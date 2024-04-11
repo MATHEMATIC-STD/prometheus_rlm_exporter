@@ -1,6 +1,6 @@
 package controllers
 
-import "github.com/OlivierArgentieri/NukeRlmPrometheusExporter/middlewares"
+import "github.com/OlivierArgentieri/PrometheusExporter/middlewares"
 
 func (server *Server) initRoutes() {
 	// route

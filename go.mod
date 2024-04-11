@@ -1,4 +1,4 @@
-module github.com/OlivierArgentieri/NukeRlmPrometheusExporter
+module github.com/OlivierArgentieri/PrometheusExporter
 
 go 1.22.0
 
