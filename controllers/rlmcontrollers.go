@@ -174,16 +174,9 @@ func GetMetrics(value string) (string, error) {
 	str := ""
 	for key := range total_keys {
 		key := total_keys[key]
-		tag := key
-
 		value := total[key]
-
-		if _tag := os.Getenv(statics.LIC_TAG) ; _tag != "" {
-			tag = fmt.Sprintf("%s_%s", _tag, key)
-		}
-
-		str += fmt.Sprintf("# HELP %s_license_usage %s_license_usage\n", tag, tag)
-		str += fmt.Sprintf("# TYPE %s_license_usage gauge\n", tag)
+		str += fmt.Sprintf("# HELP %s_license_usage %s_license_usage\n", key, key)
+		str += fmt.Sprintf("# TYPE %s_license_usage gauge\n", key)
 
 		versions := "none"
 		users := "none"
@@ -199,8 +192,8 @@ func GetMetrics(value string) (string, error) {
 
 		str += fmt.Sprintf(
 			"rlm_license_info_%s{id=\"%s_usage\", product=\"%s\", versions=\"%s\", users=\"%s\", workers=\"%s\", count=\"%d\"} %d\n",
-			tag,
-			tag,
+			key,
+			key,
 			value.Product,
 			versions,
 			users,
@@ -212,17 +205,13 @@ func GetMetrics(value string) (string, error) {
 
 	for key := range total_keys {
 		key := total_keys[key]
-		tag := key
-		if _tag := os.Getenv(statics.LIC_TAG) ; _tag != "" {
-			tag = fmt.Sprintf("%s_%s", _tag, key)
-		}
 		value := total[key]
-		str += fmt.Sprintf("# HELP %s_total_licenses %s_total_licenses\n", tag, tag)
-		str += fmt.Sprintf("# TYPE %s_total_licenses gauge\n", tag)
+		str += fmt.Sprintf("# HELP %s_total_licenses %s_total_licenses\n", key, key)
+		str += fmt.Sprintf("# TYPE %s_total_licenses gauge\n", key)
 		str += fmt.Sprintf(
 			"rlm_license_info_%s{id=\"%s_total\", product=\"%s\", version=\"%s\", count=\"%d\"} %d\n",
-			tag,
-			tag,
+			key,
+			key,
 			value.Product,
 			value.Version,
 			value.Count,
