@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/OlivierArgentieri/PrometheusExporter/responses"
 	"github.com/OlivierArgentieri/PrometheusExporter/statics"
