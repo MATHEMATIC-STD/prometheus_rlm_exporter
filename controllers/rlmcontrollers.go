@@ -74,7 +74,12 @@ func GetUsages(value string) (map[string]Usage, error) {
 	for i := 0; i < len(usage_matchs); i++ {
 		result := getNamedGroups(reg_usage_compiled, usage_matchs[i])
 
-		if usage, ok := usages[result["product"]]; ok {
+		key := result["product"]
+		key = strings.Replace(key, ".", "_", -1)
+		key = strings.Replace(key, "~", "_", -1)
+		key = strings.Replace(key, "-", "_", -1)
+		
+		if usage, ok := usages[key]; ok {
 			// ignore if worker already exists because it's one license per worker
 			if stringInSlice(result["worker"], usage.Workers) {
 				continue
@@ -89,9 +94,9 @@ func GetUsages(value string) (map[string]Usage, error) {
 			if !stringInSlice(result["version"], usage.Versions) {
 				usage.Versions = append(usage.Versions, result["version"])
 			}
-
-			usages[result["product"]] = Usage{
-				Product:  result["product"],
+			
+			usages[key] = Usage{
+				Product:  key,
 				Versions: usage.Versions,
 				Users:    usage.Users,
 				Workers:  usage.Workers,
@@ -101,7 +106,7 @@ func GetUsages(value string) (map[string]Usage, error) {
 		}
 
 		usage_obj := Usage{
-			Product:  result["product"],
+			Product:  key,
 			Versions: []string{result["version"]},
 			Users:    []string{result["user"]},
 			Workers:  []string{result["worker"]},
@@ -130,11 +135,15 @@ func GetTotals(value string) (map[string]Total, error) {
 			return nil, fmt.Errorf("ERROR CONVERTING STRING TO INT FROM RLM")
 		}
 
+		key := result["product"]
+		key = strings.Replace(key, ".", "_", -1)
+		key = strings.Replace(key, "~", "_", -1)
+		key = strings.Replace(key, "-", "_", -1)
 		// ignore if key already exists
-		if total, ok := totals[result["product"]]; ok {
+		if total, ok := totals[key]; ok {
 			// update the count
-			totals[result["product"]] = Total{
-				Product: result["product"],
+			totals[key] = Total{
+				Product: key,
 				Version: result["version"],
 				Count:   total.Count + count,
 			}
@@ -142,7 +151,7 @@ func GetTotals(value string) (map[string]Total, error) {
 		}
 
 		total_obj := Total{
-			Product: result["product"],
+			Product: key,
 			Version: result["version"],
 			Count:   count,
 		}
@@ -174,9 +183,16 @@ func GetMetrics(value string) (string, error) {
 	str := ""
 	for key := range total_keys {
 		key := total_keys[key]
+		tag := key
+
 		value := total[key]
-		str += fmt.Sprintf("# HELP %s_license_usage %s_license_usage\n", key, key)
-		str += fmt.Sprintf("# TYPE %s_license_usage gauge\n", key)
+
+		if _tag := os.Getenv(statics.LIC_TAG) ; _tag != "" {
+			tag = fmt.Sprintf("%s_%s", _tag, key)
+		}
+
+		str += fmt.Sprintf("# HELP %s_license_usage %s_license_usage\n", tag, tag)
+		str += fmt.Sprintf("# TYPE %s_license_usage gauge\n", tag)
 
 		versions := "none"
 		users := "none"
@@ -192,8 +208,8 @@ func GetMetrics(value string) (string, error) {
 
 		str += fmt.Sprintf(
 			"rlm_license_info_%s{id=\"%s_usage\", product=\"%s\", versions=\"%s\", users=\"%s\", workers=\"%s\", count=\"%d\"} %d\n",
-			key,
-			key,
+			tag,
+			tag,
 			value.Product,
 			versions,
 			users,
@@ -205,13 +221,17 @@ func GetMetrics(value string) (string, error) {
 
 	for key := range total_keys {
 		key := total_keys[key]
+		tag := key
+		if _tag := os.Getenv(statics.LIC_TAG) ; _tag != "" {
+			tag = fmt.Sprintf("%s_%s", _tag, key)
+		}
 		value := total[key]
-		str += fmt.Sprintf("# HELP %s_total_licenses %s_total_licenses\n", key, key)
-		str += fmt.Sprintf("# TYPE %s_total_licenses gauge\n", key)
+		str += fmt.Sprintf("# HELP %s_total_licenses %s_total_licenses\n", tag, tag)
+		str += fmt.Sprintf("# TYPE %s_total_licenses gauge\n", tag)
 		str += fmt.Sprintf(
 			"rlm_license_info_%s{id=\"%s_total\", product=\"%s\", version=\"%s\", count=\"%d\"} %d\n",
-			key,
-			key,
+			tag,
+			tag,
 			value.Product,
 			value.Version,
 			value.Count,
