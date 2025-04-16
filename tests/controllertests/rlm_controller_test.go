@@ -10,25 +10,46 @@ import (
 )
 
 func TestGetUsages(t *testing.T) {
-
 	result, err := controllers.GetUsages(mocks.STD_OUT_EMPTY_NUKE_R)
 	if err != nil {
 		assert.Equal(t, err, nil)
 	}
 	assert.Equal(t, result, map[string]controllers.Usage{
-		"nuke_i": {
+		"mocked-computer-01-nuke_i": {
+			Computer: "mocked-computer-01",
 			Product:  "nuke_i",
-			Versions: []string{"v2024.0331", "v2024.0701"},
-			Users:    []string{"user1.lastname", "user2.lastname", "user3.lastname", "user4.lastname"},
-			Workers:  []string{"mocked-computer-01", "mocked-computer-02", "mocked-computer-03", "mocked-computer-04"},
-			Count:    4,
+			Version:  "v2024.0331",
+			User:     "user1.lastname",
 		},
-		"nukex_i": {
+		"mocked-computer-01-nukex_i": {
+			Computer: "mocked-computer-01",
 			Product:  "nukex_i",
-			Versions: []string{"v2024.0331", "v2024.0701"},
-			Users:    []string{"user2.lastname", "user1.lastname"},
-			Workers:  []string{"mocked-computer-02", "mocked-computer-01"},
-			Count:    2,
+			Version:  "v2024.0701",
+			User:     "user1.lastname",
+		},
+		"mocked-computer-02-nuke_i": {
+			Computer: "mocked-computer-02",
+			Product:  "nuke_i",
+			Version:  "v2024.0701",
+			User:     "user2.lastname",
+		},
+		"mocked-computer-02-nukex_i": {
+			Computer: "mocked-computer-02",
+			Product:  "nukex_i",
+			Version:  "v2024.0331",
+			User:     "user2.lastname",
+		},
+		"mocked-computer-03-nuke_i": {
+			Computer: "mocked-computer-03",
+			Product:  "nuke_i",
+			Version:  "v2024.0701",
+			User:     "user3.lastname",
+		},
+		"mocked-computer-04-nuke_i": {
+			Computer: "mocked-computer-04",
+			Product:  "nuke_i",
+			Version:  "v2024.0701",
+			User:     "user4.lastname",
 		},
 	})
 
@@ -38,26 +59,53 @@ func TestGetUsages(t *testing.T) {
 	}
 
 	assert.Equal(t, result, map[string]controllers.Usage{
-		"nuke_i": {
+		"mocked-computer-01-nuke_i": {
+			Computer: "mocked-computer-01",
 			Product:  "nuke_i",
-			Versions: []string{"v2024.0331", "v2024.0701"},
-			Users:    []string{"user1.lastname", "user2.lastname", "user3.lastname", "user4.lastname"},
-			Workers:  []string{"mocked-computer-01", "mocked-computer-02", "mocked-computer-03", "mocked-computer-04"},
-			Count:    4,
+			Version:  "v2024.0331",
+			User:     "user1.lastname",
 		},
-		"nuke_r": {
-			Product:  "nuke_r",
-			Versions: []string{"v2024.0701"},
-			Users:    []string{"user1.lastname"},
-			Workers:  []string{"mocked-computer-05", "mocked-computer-06"},
-			Count:    2,
-		},
-		"nukex_i": {
+		"mocked-computer-01-nukex_i": {
+			Computer: "mocked-computer-01",
 			Product:  "nukex_i",
-			Versions: []string{"v2024.0331", "v2024.0701"},
-			Users:    []string{"user2.lastname", "user1.lastname"},
-			Workers:  []string{"mocked-computer-02", "mocked-computer-01"},
-			Count:    2,
+			Version:  "v2024.0701",
+			User:     "user1.lastname",
+		},
+		"mocked-computer-02-nuke_i": {
+			Computer: "mocked-computer-02",
+			Product:  "nuke_i",
+			Version:  "v2024.0701",
+			User:     "user2.lastname",
+		},
+		"mocked-computer-02-nukex_i": {
+			Computer: "mocked-computer-02",
+			Product:  "nukex_i",
+			Version:  "v2024.0331",
+			User:     "user2.lastname",
+		},
+		"mocked-computer-03-nuke_i": {
+			Computer: "mocked-computer-03",
+			Product:  "nuke_i",
+			Version:  "v2024.0701",
+			User:     "user3.lastname",
+		},
+		"mocked-computer-04-nuke_i": {
+			Computer: "mocked-computer-04",
+			Product:  "nuke_i",
+			Version:  "v2024.0701",
+			User:     "user4.lastname",
+		},
+		"mocked-computer-05-nuke_r": {
+			Computer: "mocked-computer-05",
+			Product:  "nuke_r",
+			Version:  "v2024.0701",
+			User:     "user1.lastname",
+		},
+		"mocked-computer-06-nuke_r": {
+			Computer: "mocked-computer-06",
+			Product:  "nuke_r",
+			Version:  "v2024.0701",
+			User:     "user1.lastname",
 		},
 	})
 

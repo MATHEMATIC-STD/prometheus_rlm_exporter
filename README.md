@@ -31,12 +31,5 @@ kubectl apply -f .\kube\configmap.yml -f .\kube\namespace.yml -f .\kube\local\se
 sum by(id) (rlm_license_info_nuke_r{id="nuke_r_usage"})
 
 # To display total
-(sum in case of many versions)
-sum by(id) (rlm_license_info_nuke_r{id="nuke_r_total"})
-```
-
-## Unit tests
-To run unit tests, use the following command:
-```bash
-go test -v ./tests/...
+rlm_license_info_nuke_r{id="nuke_r_total"}
 ```

@@ -8,7 +8,6 @@ import (
 	"regexp"
 	"sort"
 	"strconv"
-	"strings"
 
 	"github.com/OlivierArgentieri/PrometheusExporter/responses"
 	"github.com/OlivierArgentieri/PrometheusExporter/statics"
@@ -16,10 +15,9 @@ import (
 
 type Usage struct {
 	Product  string
-	Versions []string
-	Users    []string
-	Workers  []string
-	Count    int
+	Version  string
+	User     string
+	Computer string
 }
 
 type Total struct {
@@ -43,26 +41,6 @@ func getNamedGroups(reg *regexp.Regexp, value string) map[string]string {
 	return result
 }
 
-func stringInSlice(a string, list []string) bool {
-	for _, b := range list {
-		if b == a {
-			return true
-		}
-	}
-	return false
-}
-
-func sliceToString(slice []string) string {
-	var str string
-	for i := 0; i < len(slice); i++ {
-		str += slice[i]
-		if i < len(slice)-1 {
-			str += ","
-		}
-	}
-	return str
-}
-
 func GetUsages(value string) (map[string]Usage, error) {
 	reg_usage_compiled := regexp.MustCompile(statics.REG_USAGE)
 	usage_matchs := reg_usage_compiled.FindAllString(value, -1)
@@ -75,46 +53,21 @@ func GetUsages(value string) (map[string]Usage, error) {
 	for i := 0; i < len(usage_matchs); i++ {
 		result := getNamedGroups(reg_usage_compiled, usage_matchs[i])
 
-		key := result["product"]
-		key = strings.Replace(key, ".", "_", -1)
-		key = strings.Replace(key, "~", "_", -1)
-		key = strings.Replace(key, "-", "_", -1)
-		
-		if usage, ok := usages[key]; ok {
-			// ignore if worker already exists because it's one license per worker
-			if stringInSlice(result["worker"], usage.Workers) {
-				continue
-			}
+		unique_key := fmt.Sprintf("%s-%s", result["computer"], result["product"])
 
-			usage.Workers = append(usage.Workers, result["worker"])
+		usage_obj := Usage{
+			Product:  result["product"],
+			Version:  result["version"],
+			User:     result["user"],
+			Computer: result["computer"],
+		}
 
-			if !stringInSlice(result["user"], usage.Users) {
-				usage.Users = append(usage.Users, result["user"])
-			}
-
-			if !stringInSlice(result["version"], usage.Versions) {
-				usage.Versions = append(usage.Versions, result["version"])
-			}
-			
-			usages[key] = Usage{
-				Product:  key,
-				Versions: usage.Versions,
-				Users:    usage.Users,
-				Workers:  usage.Workers,
-				Count:    usage.Count + 1,
-			}
+		if _, ok := usages[unique_key]; ok {
 			continue
 		}
 
-		usage_obj := Usage{
-			Product:  key,
-			Versions: []string{result["version"]},
-			Users:    []string{result["user"]},
-			Workers:  []string{result["worker"]},
-			Count:    1,
-		}
 		// add to dictionary
-		usages[usage_obj.Product] = usage_obj
+		usages[unique_key] = usage_obj
 	}
 	return usages, nil
 }
@@ -136,15 +89,11 @@ func GetTotals(value string) (map[string]Total, error) {
 			return nil, fmt.Errorf("ERROR CONVERTING STRING TO INT FROM RLM")
 		}
 
-		key := result["product"]
-		key = strings.Replace(key, ".", "_", -1)
-		key = strings.Replace(key, "~", "_", -1)
-		key = strings.Replace(key, "-", "_", -1)
 		// ignore if key already exists
-		if total, ok := totals[key]; ok {
+		if total, ok := totals[result["product"]]; ok {
 			// update the count
-			totals[key] = Total{
-				Product: key,
+			totals[result["product"]] = Total{
+				Product: result["product"],
 				Version: result["version"],
 				Count:   total.Count + count,
 			}
@@ -152,91 +101,69 @@ func GetTotals(value string) (map[string]Total, error) {
 		}
 
 		total_obj := Total{
-			Product: key,
+			Product: result["product"],
 			Version: result["version"],
 			Count:   count,
 		}
-		// add to dictionary
 		totals[total_obj.Product] = total_obj
 	}
 	return totals, nil
 }
 
 func GetMetrics(value string) (string, error) {
-	usage, err := GetUsages(value)
+	usages, err := GetUsages(value)
 	if err != nil {
 		return "", err
 	}
 
-	total, err := GetTotals(value)
+	tag := "rlm"
+	if _tag := os.Getenv(statics.LIC_TAG); _tag != "" {
+		tag = _tag
+	}
+
+	totals, err := GetTotals(value)
 	if err != nil {
 		return "", err
 	}
 
-	// Sort dict key
-	// TODO: Move to a helper function/package
-	total_keys := make([]string, 0, len(total))
-	for k := range total {
-		total_keys = append(total_keys, k)
+	// sort the usages keys, required for the tests
+	sorted_keys := make([]string, 0, len(usages))
+	for k := range usages {
+		sorted_keys = append(sorted_keys, k)
 	}
-	sort.Strings(total_keys)
+	sort.Strings(sorted_keys)
 
-	str := ""
-	for key := range total_keys {
-		key := total_keys[key]
-		tag := key
-
-		value := total[key]
-
-		if _tag := os.Getenv(statics.LIC_TAG) ; _tag != "" {
-			tag = fmt.Sprintf("%s_%s", _tag, key)
-		}
-
-		str += fmt.Sprintf("# HELP %s_license_usage %s_license_usage\n", tag, tag)
-		str += fmt.Sprintf("# TYPE %s_license_usage gauge\n", tag)
-
-		versions := "none"
-		users := "none"
-		workers := "none"
-		count := 0
-
-		if usage, ok := usage[key]; ok {
-			versions = sliceToString(usage.Versions)
-			users = sliceToString(usage.Users)
-			workers = sliceToString(usage.Workers)
-			count = usage.Count
-		}
+	str := fmt.Sprintf("\n# HELP %s_license_usage Used %s licenses\n# TYPE %s_license_usage gauge\n", tag, tag, tag)
+	for _, key := range sorted_keys {
+		usage := usages[key]
 
 		str += fmt.Sprintf(
-			"rlm_license_info_%s{id=\"%s_usage\", product=\"%s\", versions=\"%s\", users=\"%s\", workers=\"%s\", count=\"%d\"} %d\n",
+			"%s_license_info_%s{computer=\"%s\", product=\"%s\", version=\"%s\", user=\"%s\"} 1.0\n",
 			tag,
-			tag,
-			value.Product,
-			versions,
-			users,
-			workers,
-			count,
-			count,
+			usage.Product,
+			usage.Computer,
+			usage.Product,
+			usage.Version,
+			usage.User,
 		)
 	}
 
-	for key := range total_keys {
-		key := total_keys[key]
-		tag := key
-		if _tag := os.Getenv(statics.LIC_TAG) ; _tag != "" {
-			tag = fmt.Sprintf("%s_%s", _tag, key)
-		}
-		value := total[key]
-		str += fmt.Sprintf("# HELP %s_total_licenses %s_total_licenses\n", tag, tag)
-		str += fmt.Sprintf("# TYPE %s_total_licenses gauge\n", tag)
+	// sort the usages keys, required for the tests
+	sorted_keys = make([]string, 0, len(totals))
+	for k := range totals {
+		sorted_keys = append(sorted_keys, k)
+	}
+	sort.Strings(sorted_keys)
+
+	str += fmt.Sprintf("# HELP %s_license_total Total %s licenses\n# TYPE %s_license_total gauge\n", tag, tag, tag)
+	for _, product := range sorted_keys {
+		total := totals[product]
 		str += fmt.Sprintf(
-			"rlm_license_info_%s{id=\"%s_total\", product=\"%s\", version=\"%s\", count=\"%d\"} %d\n",
+			"%s_licenses_total{product=\"%s\", version=\"%s\"} %d.0\n",
 			tag,
-			tag,
-			value.Product,
-			value.Version,
-			value.Count,
-			value.Count,
+			product,
+			total.Version,
+			total.Count,
 		)
 	}
 
@@ -244,7 +171,6 @@ func GetMetrics(value string) (string, error) {
 }
 
 func (server *Server) GetLicenses(w http.ResponseWriter, r *http.Request) {
-
 	// get the rlmutil path
 	rlmutil_root := os.Getenv(statics.RLMUTIL_BIN_ROOT)
 
